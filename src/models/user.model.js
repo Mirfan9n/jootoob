@@ -29,7 +29,7 @@ const userSchema = new Schema(
         type: String, //cloudnary URL
         required: true,
     },
-    coverimage:{
+    coverImage:{
         type: String,
     },
     watchHistory:[      
@@ -55,8 +55,9 @@ const userSchema = new Schema(
 // password got encrypted b4 saving
 // using mongoose hook "pre"
 userSchema.pre("save", async function(next){
-    if(this.isModified("password")) return next()
-    this.password = await bcrypt.hash(this.password, 10)
+    if(!this.isModified("password")) return next()
+    
+        this.password = await bcrypt.hash(this.password, 10)
     next()
 })
 

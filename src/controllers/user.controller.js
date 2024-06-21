@@ -16,7 +16,7 @@ const registerUser = asynchandler(async( req, res)=>{
     // remove pass nd refresh token field or encript
     // check for user creation
     // return the user as a response
-    
+
     const  {fullName, email, username, password } = req.body
 
     if(
@@ -27,21 +27,28 @@ const registerUser = asynchandler(async( req, res)=>{
         new ApiError(400, "All fields are required")
     }
 
-    // email checer
-    const existedUser = User.findOne({
+    // email checker
+    const existedUser = await User.findOne({
         $or : [ {username}, {email}]
     })
     if(existedUser) throw new ApiError(400, "User Email/username Already existed")
 
     // check for img
     // multer deta h files 
-    // ! read the api via loging the data 
+    // ! read the API via consoling the data 
 
     const avatarLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    // console.log(req);
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path
     
     if(! avatarLocalPath) throw new ApiError(400, "Avatar is required") 
     
+
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage ) && req.files.coverImage.length > 0 ){
+        coverImageLocalPath = req.files.coverImage[0].path;
+    }
+    console.log(req.files);
 
     // upload to cloudinary
    const avatar =  await uploadOnCloudinary(avatarLocalPath)
@@ -51,13 +58,13 @@ const registerUser = asynchandler(async( req, res)=>{
 
 
     // obj bna or db m push krde
-    const user = await User.create({
+    const user = await User.create({  
         fullName, 
         avatar: avatar.url,
         coverImage: coverImage?.url || "", // !IMP
         email,
         password,
-        username : username.toLowerCase()
+        username : username.toLowerCase() 
     })
     const createdUser = await User.findById(user._id)
         .select(
@@ -68,7 +75,9 @@ const registerUser = asynchandler(async( req, res)=>{
         throw new ApiError(500, "Internal Server error while creating the user")
     } 
 
-    return res.status(201).json(new ApiResponse(200, createdUser, "User Registered Succesfully" ))
+    return res.status(201).json(
+        new ApiResponse(200, createdUser, "User Registered Succesfully" )
+    )
 })
 
 export {registerUser}
