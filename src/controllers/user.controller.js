@@ -3,26 +3,30 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import mongoose from "mongoose";
 
 
 const generateAccessAndRefreshTocken = async(userId)=>{
     try {
-        const user = User.findById(userId)
+
+        const user = await User.findById(userId)
+        // console.log(user);
         const accessToken = user.generateAccessToken()
+        // console.log(accessToken);
         const refreshToken = user.generateRefreshToken()
+        // console.log(refreshToken);
 
         user.refreshToken = refreshToken;
         
         // !IMP
         // validate mt kro kuch bs save krdo i know what m doin 
-        user.save({ validateBeforeSave: false }) 
+        await user.save({ validateBeforeSave: false }) 
         
 
         return {accessToken, refreshToken}
 
     } catch (error) {
-        throw new ApiError(500, "Something went wrong while generating Tockens")
+        throw new ApiError(500, "Something went wrong while generating Tokens")
     }
 }
 
@@ -137,6 +141,7 @@ const loginUser = asynchandler(async(req, res)=>{
         throw new ApiError(401, "Invalid user credential")
     }
 
+    // console.log(user._id);
     const {accessToken, refreshToken} = await generateAccessAndRefreshTocken(user._id)
     // uper wala user k instance m tocken mt h to re call krna pdega DB
 
@@ -162,26 +167,29 @@ const loginUser = asynchandler(async(req, res)=>{
     )
 })
 
-const logoutUser = asynchandler(async(req, res)=>{
-    User.findByIdAndUpdate(
+const logoutUser = asynchandler(async(req, res) => {
+    await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken : undefined
+            $set: {
+                refreshToken: undefined // this removes the field from document
             }
         },
         {
             new: true
         }
     )
+
     const options = {
         httpOnly: true,
-        secure: true,
+        secure: true
     }
+
     return res
-    .status(201)
-    .clearCookie("refreshToken", options)
+    .status(200)
     .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
 
